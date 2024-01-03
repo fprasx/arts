@@ -4,8 +4,11 @@
 use std::marker::PhantomData;
 
 fn main() {
-    println!("{}",
-            Succ::<Succ::<Zero>>::VALUE
+    println!("{}, {}, {}, {}",
+             <(church!(**), church!(***)) as Add>::Sum::VALUE,
+             <(church!(), church!(***)) as Add>::Sum::VALUE,
+             <(church!(**), church!()) as Add>::Sum::VALUE,
+             <(church!(), church!()) as Add>::Sum::VALUE,
     );
     println!("{}",
         <<<<<<<<
@@ -73,4 +76,24 @@ where
     T: Value,
 {
     const VALUE: usize = 1 + T::VALUE;
+}
+
+trait Add {
+    type Sum;
+}
+
+impl Add for (Zero, Zero) {
+    type Sum = Zero;
+}
+
+impl<T> Add for (Succ<T>, Zero) {
+    type Sum = Succ<T>;
+}
+
+impl<T> Add for (Zero, Succ<T>) {
+    type Sum = Succ<T>;
+}
+
+impl<T, U> Add for (Succ<T>, Succ<U>) where (T, Succ<Succ<U>>): Add  {
+    type Sum = <(T, Succ<Succ<U>>) as Add>::Sum;
 }
