@@ -1,45 +1,21 @@
 use std::marker::PhantomData;
 
 fn main() {
-    println!(
-        "{}, {}, {}, {}",
-        <(encode!(**), encode!(***)) as Add>::Sum::VALUE,
-        <(encode!(), encode!(***)) as Add>::Sum::VALUE,
-        <(encode!(**), encode!()) as Add>::Sum::VALUE,
-        <(encode!(), encode!()) as Add>::Sum::VALUE,
-    );
-    println!(
-        "{}, {}, {}",
-        <(encode!(*****), encode!(***)) as Sub>::Diff::VALUE,
-        <(encode!(**), encode!()) as Sub>::Diff::VALUE,
-        <(encode!(), encode!()) as Sub>::Diff::VALUE,
-        // Gives a compiler error! We can't underflow! Such power.
-        // <(church!(), church!(***)) as Subtract>::Diff::VALUE,
-    );
-    println!(
-        "{}, {}, {}, {}, {}, {}",
-        <(encode!(*****), encode!(***)) as Mul>::Product::VALUE,
-        <(encode!(***), encode!(*)) as Mul>::Product::VALUE,
-        <(encode!(*), encode!(*****)) as Mul>::Product::VALUE,
-        <(encode!(***), encode!()) as Mul>::Product::VALUE,
-        <(encode!(), encode!(*****)) as Mul>::Product::VALUE,
-        <(encode!(), encode!()) as Mul>::Product::VALUE,
-    );
-    println!(
-        "0 / 1 = {}\n1 / 1 = {}\n4 / 1 = {}\n=========\n> {}",
-        <(encode!(), encode!(*)) as Div>::Quotient::VALUE,
-        <(encode!(*), encode!(*)) as Div>::Quotient::VALUE,
-        <(encode!(****), encode!(*)) as Div>::Quotient::VALUE,
-        <(encode!(****), encode!(**)) as Div>::Quotient::VALUE,
-    );
-    println!(
-        "{}",
-        <encode!(
-            ***********************
-            ***********************
-            ***********************
-        )>::VALUE
-    );
+        println!(
+            "{}",
+            <(
+                encode!(
+                    ***********************
+                    ***********************
+                    ***********************
+                ),
+                encode!(
+                    **************
+                    **************
+                    **************
+                )
+            ) as Sub>::Diff::VALUE
+        );
 }
 
 #[macro_export]
@@ -250,8 +226,8 @@ mod tests {
     fn subtraction() {
         assert_eq!(<(encode!(), encode!()) as Sub>::Diff::VALUE, 0);
         assert_eq!(<(encode!(*), encode!()) as Sub>::Diff::VALUE, 1);
-        // Gives a compiler error! We can't underflow! Such power.
-        // assert_eq!(<(church!(), church!(*)) as Sub>::Diff::VALUE, 1);
+        // Subtraction is saturating to make division easier
+        assert_eq!(<(encode!(), encode!(*)) as Sub>::Diff::VALUE, 0);
         assert_eq!(<(encode!(***), encode!(**)) as Sub>::Diff::VALUE, 1);
     }
 
@@ -267,10 +243,22 @@ mod tests {
     #[test]
     fn greater_than_eq() {
         assert_eq!(<(encode!(), encode!()) as GreaterThanEq>::Greater::VALUE, 1);
-        assert_eq!(<(encode!(*), encode!()) as GreaterThanEq>::Greater::VALUE, 1);
-        assert_eq!(<(encode!(), encode!(*)) as GreaterThanEq>::Greater::VALUE, 0);
-        assert_eq!(<(encode!(**), encode!(**)) as GreaterThanEq>::Greater::VALUE, 1);
-        assert_eq!(<(encode!(***), encode!(**)) as GreaterThanEq>::Greater::VALUE, 1);
+        assert_eq!(
+            <(encode!(*), encode!()) as GreaterThanEq>::Greater::VALUE,
+            1
+        );
+        assert_eq!(
+            <(encode!(), encode!(*)) as GreaterThanEq>::Greater::VALUE,
+            0
+        );
+        assert_eq!(
+            <(encode!(**), encode!(**)) as GreaterThanEq>::Greater::VALUE,
+            1
+        );
+        assert_eq!(
+            <(encode!(***), encode!(**)) as GreaterThanEq>::Greater::VALUE,
+            1
+        );
     }
 
     #[test]
