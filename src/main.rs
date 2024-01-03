@@ -1,21 +1,21 @@
 use std::marker::PhantomData;
 
 fn main() {
-        println!(
-            "{}",
-            <(
-                encode!(
-                    ***********************
-                    ***********************
-                    ***********************
-                ),
-                encode!(
-                    **************
-                    **************
-                    **************
-                )
-            ) as Sub>::Diff::VALUE
-        );
+    println!(
+        "{}",
+        <(
+            encode!(
+                ***********************
+                ***********************
+                ***********************
+            ),
+            encode!(
+                **************
+                **************
+                **************
+            )
+        ) as Sub>::Diff::VALUE
+    );
 }
 
 #[macro_export]
@@ -272,5 +272,6 @@ mod tests {
         assert_eq!(<(encode!(**), encode!(***)) as Div>::Quotient::VALUE, 0);
         assert_eq!(<(encode!(***), encode!(**)) as Div>::Quotient::VALUE, 1);
         assert_eq!(<(encode!(******), encode!(**)) as Div>::Quotient::VALUE, 3);
+        assert_eq!(<(encode!(*******), encode!(**)) as Div>::Quotient::VALUE, 3);
     }
 }
