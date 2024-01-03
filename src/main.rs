@@ -1,6 +1,3 @@
-#![feature(associated_type_defaults)]
-#![recursion_limit = "256"]
-
 use std::marker::PhantomData;
 
 fn main() {
@@ -35,18 +32,6 @@ fn main() {
         <(encode!(****), encode!(*)) as Div>::Quotient::VALUE,
         <(encode!(****), encode!(**)) as Div>::Quotient::VALUE,
     );
-    println!("{}",
-        <<<<<<<<
-          Zero as Nat>
-        ::Next as Nat>
-        ::Next as Nat>
-        ::Next as Nat>
-        ::Next as Nat>
-        ::Next as Nat>
-        ::Next as Nat>
-        ::Next as Nat>
-        ::Next::VALUE
-    );
     println!(
         "{}",
         <encode!(
@@ -64,10 +49,10 @@ macro_rules! encode {
         Zero
     };
     ($_a:tt $_b:tt $($tail:tt)*) => {
-        <<encode!($($tail)*) as Nat>::Next as Nat>::Next
+        Succ<Succ<encode!($($tail)*)>>
     };
     ($_a:tt $($tail:tt)*) => {
-        <encode!($($tail)*) as Nat>::Next
+        Succ<encode!($($tail)*)>
     };
 }
 
@@ -76,18 +61,6 @@ struct Zero;
 
 #[derive(Debug)]
 struct Succ<T>(PhantomData<T>);
-
-// Need a function from type -> type. Implementing a trait and making an
-// associated type does this!
-trait Nat
-where
-    Self: Sized,
-{
-    type Next = Succ<Self>;
-}
-
-impl Nat for Zero {}
-impl<T> Nat for Succ<T> {}
 
 // Evaluation
 
