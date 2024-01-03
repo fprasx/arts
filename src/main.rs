@@ -1,5 +1,5 @@
 #![feature(associated_type_defaults)]
-#![recursion_limit = "100000000"]
+#![recursion_limit = "256"]
 
 use std::marker::PhantomData;
 
@@ -9,6 +9,23 @@ fn main() {
              <(church!(), church!(***)) as Add>::Sum::VALUE,
              <(church!(**), church!()) as Add>::Sum::VALUE,
              <(church!(), church!()) as Add>::Sum::VALUE,
+    );
+    println!("{}, {}, {}",
+             <(church!(*****), church!(***)) as Sub>::Diff::VALUE,
+             <(church!(**), church!()) as Sub>::Diff::VALUE,
+             <(church!(), church!()) as Sub>::Diff::VALUE,
+
+             // Gives a compiler error! We can't underflow! Such power.
+             // <(church!(), church!(***)) as Subtract>::Diff::VALUE,
+    );
+    println!(
+        "{}, {}, {}, {}, {}, {}",
+        <(church!(*****), church!(***)) as Mul>::Product::VALUE,
+        <(church!(***), church!(*)) as Mul>::Product::VALUE,
+        <(church!(*), church!(*****)) as Mul>::Product::VALUE,
+        <(church!(***), church!()) as Mul>::Product::VALUE,
+        <(church!(), church!(*****)) as Mul>::Product::VALUE,
+        <(church!(), church!()) as Mul>::Product::VALUE,
     );
     println!("{}",
         <<<<<<<<
@@ -64,10 +81,12 @@ where
 impl Nat for Zero {}
 impl<T> Nat for Succ<T> {}
 
-// Recursively evaluate through the type
+// Evaluation
+
 trait Value {
     const VALUE: usize;
 }
+
 impl Value for Zero {
     const VALUE: usize = 0;
 }
@@ -77,6 +96,8 @@ where
 {
     const VALUE: usize = 1 + T::VALUE;
 }
+
+// Addition
 
 trait Add {
     type Sum;
@@ -94,6 +115,55 @@ impl<T> Add for (Zero, Succ<T>) {
     type Sum = Succ<T>;
 }
 
-impl<T, U> Add for (Succ<T>, Succ<U>) where (T, Succ<Succ<U>>): Add  {
+impl<T, U> Add for (Succ<T>, Succ<U>)
+where
+    (T, Succ<Succ<U>>): Add,
+{
     type Sum = <(T, Succ<Succ<U>>) as Add>::Sum;
+}
+
+// Subtraction
+
+trait Sub {
+    type Diff;
+}
+
+impl Sub for (Zero, Zero) {
+    type Diff = Zero;
+}
+
+impl<T> Sub for (Succ<T>, Zero) {
+    type Diff = Succ<T>;
+}
+
+impl<T, U> Sub for (Succ<T>, Succ<U>)
+where
+    (T, U): Sub,
+{
+    type Diff = <(T, U) as Sub>::Diff;
+}
+
+// Multiplication
+
+trait Mul {
+    type Product;
+}
+
+impl<T> Mul for (T, Zero) {
+    type Product = Zero;
+}
+
+// Implementing for (Zero, T) would overlap with the previous impl, so we do
+// (Zero, Succ<T>) to avoid the (Zero, Zero) case that overlaps
+impl<T> Mul for (Zero, Succ<T>) {
+    type Product = Zero;
+}
+
+impl<T, U> Mul for (Succ<T>, Succ<U>)
+where
+    (T, Succ<U>): Mul,
+    (Succ<U>, <(T, Succ<U>) as Mul>::Product): Add,
+{
+    // x * y = x + (x - 1) * y
+    type Product = <(Succ<U>, <(T, Succ<U>) as Mul>::Product) as Add>::Sum;
 }
