@@ -6,34 +6,34 @@ use std::marker::PhantomData;
 fn main() {
     println!(
         "{}, {}, {}, {}",
-        <(church!(**), church!(***)) as Add>::Sum::VALUE,
-        <(church!(), church!(***)) as Add>::Sum::VALUE,
-        <(church!(**), church!()) as Add>::Sum::VALUE,
-        <(church!(), church!()) as Add>::Sum::VALUE,
+        <(encode!(**), encode!(***)) as Add>::Sum::VALUE,
+        <(encode!(), encode!(***)) as Add>::Sum::VALUE,
+        <(encode!(**), encode!()) as Add>::Sum::VALUE,
+        <(encode!(), encode!()) as Add>::Sum::VALUE,
     );
     println!(
         "{}, {}, {}",
-        <(church!(*****), church!(***)) as Sub>::Diff::VALUE,
-        <(church!(**), church!()) as Sub>::Diff::VALUE,
-        <(church!(), church!()) as Sub>::Diff::VALUE,
+        <(encode!(*****), encode!(***)) as Sub>::Diff::VALUE,
+        <(encode!(**), encode!()) as Sub>::Diff::VALUE,
+        <(encode!(), encode!()) as Sub>::Diff::VALUE,
         // Gives a compiler error! We can't underflow! Such power.
         // <(church!(), church!(***)) as Subtract>::Diff::VALUE,
     );
     println!(
         "{}, {}, {}, {}, {}, {}",
-        <(church!(*****), church!(***)) as Mul>::Product::VALUE,
-        <(church!(***), church!(*)) as Mul>::Product::VALUE,
-        <(church!(*), church!(*****)) as Mul>::Product::VALUE,
-        <(church!(***), church!()) as Mul>::Product::VALUE,
-        <(church!(), church!(*****)) as Mul>::Product::VALUE,
-        <(church!(), church!()) as Mul>::Product::VALUE,
+        <(encode!(*****), encode!(***)) as Mul>::Product::VALUE,
+        <(encode!(***), encode!(*)) as Mul>::Product::VALUE,
+        <(encode!(*), encode!(*****)) as Mul>::Product::VALUE,
+        <(encode!(***), encode!()) as Mul>::Product::VALUE,
+        <(encode!(), encode!(*****)) as Mul>::Product::VALUE,
+        <(encode!(), encode!()) as Mul>::Product::VALUE,
     );
     println!(
         "0 / 1 = {}\n1 / 1 = {}\n4 / 1 = {}\n=========\n> {}",
-        <(church!(), church!(*)) as Div>::Quotient::VALUE,
-        <(church!(*), church!(*)) as Div>::Quotient::VALUE,
-        <(church!(****), church!(*)) as Div>::Quotient::VALUE,
-        <(church!(****), church!(**)) as Div>::Quotient::VALUE,
+        <(encode!(), encode!(*)) as Div>::Quotient::VALUE,
+        <(encode!(*), encode!(*)) as Div>::Quotient::VALUE,
+        <(encode!(****), encode!(*)) as Div>::Quotient::VALUE,
+        <(encode!(****), encode!(**)) as Div>::Quotient::VALUE,
     );
     println!("{}",
         <<<<<<<<
@@ -49,7 +49,7 @@ fn main() {
     );
     println!(
         "{}",
-        <church!(
+        <encode!(
             ***********************
             ***********************
             ***********************
@@ -59,15 +59,15 @@ fn main() {
 
 #[macro_export]
 /// Works until about 3200
-macro_rules! church {
+macro_rules! encode {
     () => {
         Zero
     };
     ($_a:tt $_b:tt $($tail:tt)*) => {
-        <<church!($($tail)*) as Nat>::Next as Nat>::Next
+        <<encode!($($tail)*) as Nat>::Next as Nat>::Next
     };
     ($_a:tt $($tail:tt)*) => {
-        <church!($($tail)*) as Nat>::Next
+        <encode!($($tail)*) as Nat>::Next
     };
 }
 
@@ -267,50 +267,49 @@ mod tests {
 
     #[test]
     fn addition() {
-        assert_eq!(<(church!(), church!()) as Add>::Sum::VALUE, 0);
-        assert_eq!(<(church!(*), church!()) as Add>::Sum::VALUE, 1);
-        assert_eq!(<(church!(), church!(*)) as Add>::Sum::VALUE, 1);
-        assert_eq!(<(church!(**), church!(***)) as Add>::Sum::VALUE, 5);
+        assert_eq!(<(encode!(), encode!()) as Add>::Sum::VALUE, 0);
+        assert_eq!(<(encode!(*), encode!()) as Add>::Sum::VALUE, 1);
+        assert_eq!(<(encode!(), encode!(*)) as Add>::Sum::VALUE, 1);
+        assert_eq!(<(encode!(**), encode!(***)) as Add>::Sum::VALUE, 5);
     }
 
     #[test]
     fn subtraction() {
-        assert_eq!(<(church!(), church!()) as Sub>::Diff::VALUE, 0);
-        assert_eq!(<(church!(*), church!()) as Sub>::Diff::VALUE, 1);
+        assert_eq!(<(encode!(), encode!()) as Sub>::Diff::VALUE, 0);
+        assert_eq!(<(encode!(*), encode!()) as Sub>::Diff::VALUE, 1);
         // Gives a compiler error! We can't underflow! Such power.
         // assert_eq!(<(church!(), church!(*)) as Sub>::Diff::VALUE, 1);
-        assert_eq!(<(church!(***), church!(**)) as Sub>::Diff::VALUE, 1);
+        assert_eq!(<(encode!(***), encode!(**)) as Sub>::Diff::VALUE, 1);
     }
 
     #[test]
     fn multiplication() {
-        assert_eq!(<(church!(), church!()) as Mul>::Product::VALUE, 0);
-        assert_eq!(<(church!(*), church!()) as Mul>::Product::VALUE, 0);
-        assert_eq!(<(church!(), church!(*)) as Mul>::Product::VALUE, 0);
-        assert_eq!(<(church!(*), church!(*)) as Mul>::Product::VALUE, 1);
-        assert_eq!(<(church!(**), church!(***)) as Mul>::Product::VALUE, 6);
+        assert_eq!(<(encode!(), encode!()) as Mul>::Product::VALUE, 0);
+        assert_eq!(<(encode!(*), encode!()) as Mul>::Product::VALUE, 0);
+        assert_eq!(<(encode!(), encode!(*)) as Mul>::Product::VALUE, 0);
+        assert_eq!(<(encode!(*), encode!(*)) as Mul>::Product::VALUE, 1);
+        assert_eq!(<(encode!(**), encode!(***)) as Mul>::Product::VALUE, 6);
     }
 
     #[test]
     fn greater_than_eq() {
-        // We define 0 / 0 as 0
-        assert_eq!(<(church!(), church!()) as GreaterThanEq>::Greater::VALUE, 1);
-        assert_eq!(<(church!(*), church!()) as GreaterThanEq>::Greater::VALUE, 1);
-        assert_eq!(<(church!(), church!(*)) as GreaterThanEq>::Greater::VALUE, 0);
-        assert_eq!(<(church!(**), church!(**)) as GreaterThanEq>::Greater::VALUE, 1);
-        assert_eq!(<(church!(***), church!(**)) as GreaterThanEq>::Greater::VALUE, 1);
+        assert_eq!(<(encode!(), encode!()) as GreaterThanEq>::Greater::VALUE, 1);
+        assert_eq!(<(encode!(*), encode!()) as GreaterThanEq>::Greater::VALUE, 1);
+        assert_eq!(<(encode!(), encode!(*)) as GreaterThanEq>::Greater::VALUE, 0);
+        assert_eq!(<(encode!(**), encode!(**)) as GreaterThanEq>::Greater::VALUE, 1);
+        assert_eq!(<(encode!(***), encode!(**)) as GreaterThanEq>::Greater::VALUE, 1);
     }
 
     #[test]
     fn division() {
         // We define 0 / 0 as 0
-        assert_eq!(<(church!(), church!()) as Div>::Quotient::VALUE, 0);
+        assert_eq!(<(encode!(), encode!()) as Div>::Quotient::VALUE, 0);
         // Gives a compiler error! We can't divide by 0! Such power.
         // assert_eq!(<(church!(*), church!()) as Div>::Quotient::VALUE, 0);
-        assert_eq!(<(church!(), church!(*)) as Div>::Quotient::VALUE, 0);
-        assert_eq!(<(church!(*), church!(*)) as Div>::Quotient::VALUE, 1);
-        assert_eq!(<(church!(**), church!(***)) as Div>::Quotient::VALUE, 0);
-        assert_eq!(<(church!(***), church!(**)) as Div>::Quotient::VALUE, 1);
-        assert_eq!(<(church!(******), church!(**)) as Div>::Quotient::VALUE, 3);
+        assert_eq!(<(encode!(), encode!(*)) as Div>::Quotient::VALUE, 0);
+        assert_eq!(<(encode!(*), encode!(*)) as Div>::Quotient::VALUE, 1);
+        assert_eq!(<(encode!(**), encode!(***)) as Div>::Quotient::VALUE, 0);
+        assert_eq!(<(encode!(***), encode!(**)) as Div>::Quotient::VALUE, 1);
+        assert_eq!(<(encode!(******), encode!(**)) as Div>::Quotient::VALUE, 3);
     }
 }
