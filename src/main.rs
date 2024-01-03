@@ -4,19 +4,20 @@
 use std::marker::PhantomData;
 
 fn main() {
-    println!("{}, {}, {}, {}",
-             <(church!(**), church!(***)) as Add>::Sum::VALUE,
-             <(church!(), church!(***)) as Add>::Sum::VALUE,
-             <(church!(**), church!()) as Add>::Sum::VALUE,
-             <(church!(), church!()) as Add>::Sum::VALUE,
+    println!(
+        "{}, {}, {}, {}",
+        <(church!(**), church!(***)) as Add>::Sum::VALUE,
+        <(church!(), church!(***)) as Add>::Sum::VALUE,
+        <(church!(**), church!()) as Add>::Sum::VALUE,
+        <(church!(), church!()) as Add>::Sum::VALUE,
     );
-    println!("{}, {}, {}",
-             <(church!(*****), church!(***)) as Sub>::Diff::VALUE,
-             <(church!(**), church!()) as Sub>::Diff::VALUE,
-             <(church!(), church!()) as Sub>::Diff::VALUE,
-
-             // Gives a compiler error! We can't underflow! Such power.
-             // <(church!(), church!(***)) as Subtract>::Diff::VALUE,
+    println!(
+        "{}, {}, {}",
+        <(church!(*****), church!(***)) as Sub>::Diff::VALUE,
+        <(church!(**), church!()) as Sub>::Diff::VALUE,
+        <(church!(), church!()) as Sub>::Diff::VALUE,
+        // Gives a compiler error! We can't underflow! Such power.
+        // <(church!(), church!(***)) as Subtract>::Diff::VALUE,
     );
     println!(
         "{}, {}, {}, {}, {}, {}",
@@ -26,6 +27,13 @@ fn main() {
         <(church!(***), church!()) as Mul>::Product::VALUE,
         <(church!(), church!(*****)) as Mul>::Product::VALUE,
         <(church!(), church!()) as Mul>::Product::VALUE,
+    );
+    println!(
+        "0 / 1 = {}\n1 / 1 = {}\n4 / 1 = {}\n=========\n> {}",
+        <(church!(), church!(*)) as Div>::Quotient::VALUE,
+        <(church!(*), church!(*)) as Div>::Quotient::VALUE,
+        <(church!(****), church!(*)) as Div>::Quotient::VALUE,
+        <(church!(****), church!(**)) as Div>::Quotient::VALUE,
     );
     println!("{}",
         <<<<<<<<
@@ -136,6 +144,10 @@ impl<T> Sub for (Succ<T>, Zero) {
     type Diff = Succ<T>;
 }
 
+impl<T> Sub for (Zero, Succ<T>) {
+    type Diff = Zero;
+}
+
 impl<T, U> Sub for (Succ<T>, Succ<U>)
 where
     (T, U): Sub,
@@ -166,4 +178,139 @@ where
 {
     // x * y = x + (x - 1) * y
     type Product = <(Succ<U>, <(T, Succ<U>) as Mul>::Product) as Add>::Sum;
+}
+
+trait NotZero {
+    type NotZero;
+}
+
+impl NotZero for Zero {
+    type NotZero = Zero;
+}
+
+impl<T> NotZero for Succ<T> {
+    type NotZero = Succ<Zero>;
+}
+
+// Division
+
+trait GreaterThanEq {
+    type Greater;
+}
+
+impl GreaterThanEq for (Zero, Zero) {
+    type Greater = Succ<Zero>;
+}
+
+impl<T> GreaterThanEq for (Zero, Succ<T>) {
+    type Greater = Zero;
+}
+
+impl<T> GreaterThanEq for (Succ<T>, Zero) {
+    type Greater = Succ<Zero>;
+}
+
+impl<T, U> GreaterThanEq for (Succ<T>, Succ<U>)
+where
+    (T, U): GreaterThanEq,
+{
+    type Greater = <(T, U) as GreaterThanEq>::Greater;
+}
+
+trait Div {
+    type Quotient;
+}
+
+// Instead of implementing for (T, Succ<Zero>), implement for (Succ<T>, Succ<Zero>)
+// to avoid overlapping with the next impl on (Zero, Succ<Zero>)
+impl<T> Div for (Succ<T>, Succ<Zero>) {
+    type Quotient = Succ<T>;
+}
+
+impl<T> Div for (Zero, T) {
+    type Quotient = Zero;
+}
+
+type RawQuotient<T, U> = <(
+    Succ<Zero>,
+    <(<(Succ<T>, Succ<Succ<U>>) as Sub>::Diff, Succ<Succ<U>>) as Div>::Quotient,
+) as Add>::Sum;
+
+impl<T, U> Div for (Succ<T>, Succ<Succ<U>>)
+where
+    (T, Succ<U>): Sub,
+    (<(T, Succ<U>) as Sub>::Diff, Succ<Succ<U>>): Div,
+    (
+        Succ<Zero>,
+        <(<(T, Succ<U>) as Sub>::Diff, Succ<Succ<U>>) as Div>::Quotient,
+    ): Add,
+    (
+        <(Succ<T>, Succ<Succ<U>>) as GreaterThanEq>::Greater,
+        <(
+            Succ<Zero>,
+            <(<(T, Succ<U>) as Sub>::Diff, Succ<Succ<U>>) as Div>::Quotient,
+        ) as Add>::Sum,
+    ): Mul,
+    (Succ<T>, Succ<Succ<U>>): GreaterThanEq,
+{
+    // If x < y, return 0. We can do this by multiplying the "RawQuotient" by
+    // the bool->int value of this condition.
+    type Quotient = <(
+        <(Succ<T>, Succ<Succ<U>>) as GreaterThanEq>::Greater,
+        RawQuotient<T, U>,
+    ) as Mul>::Product;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn addition() {
+        assert_eq!(<(church!(), church!()) as Add>::Sum::VALUE, 0);
+        assert_eq!(<(church!(*), church!()) as Add>::Sum::VALUE, 1);
+        assert_eq!(<(church!(), church!(*)) as Add>::Sum::VALUE, 1);
+        assert_eq!(<(church!(**), church!(***)) as Add>::Sum::VALUE, 5);
+    }
+
+    #[test]
+    fn subtraction() {
+        assert_eq!(<(church!(), church!()) as Sub>::Diff::VALUE, 0);
+        assert_eq!(<(church!(*), church!()) as Sub>::Diff::VALUE, 1);
+        // Gives a compiler error! We can't underflow! Such power.
+        // assert_eq!(<(church!(), church!(*)) as Sub>::Diff::VALUE, 1);
+        assert_eq!(<(church!(***), church!(**)) as Sub>::Diff::VALUE, 1);
+    }
+
+    #[test]
+    fn multiplication() {
+        assert_eq!(<(church!(), church!()) as Mul>::Product::VALUE, 0);
+        assert_eq!(<(church!(*), church!()) as Mul>::Product::VALUE, 0);
+        assert_eq!(<(church!(), church!(*)) as Mul>::Product::VALUE, 0);
+        assert_eq!(<(church!(*), church!(*)) as Mul>::Product::VALUE, 1);
+        assert_eq!(<(church!(**), church!(***)) as Mul>::Product::VALUE, 6);
+    }
+
+    #[test]
+    fn greater_than_eq() {
+        // We define 0 / 0 as 0
+        assert_eq!(<(church!(), church!()) as GreaterThanEq>::Greater::VALUE, 1);
+        assert_eq!(<(church!(*), church!()) as GreaterThanEq>::Greater::VALUE, 1);
+        assert_eq!(<(church!(), church!(*)) as GreaterThanEq>::Greater::VALUE, 0);
+        assert_eq!(<(church!(**), church!(**)) as GreaterThanEq>::Greater::VALUE, 1);
+        assert_eq!(<(church!(***), church!(**)) as GreaterThanEq>::Greater::VALUE, 1);
+    }
+
+    #[test]
+    fn division() {
+        // We define 0 / 0 as 0
+        assert_eq!(<(church!(), church!()) as Div>::Quotient::VALUE, 0);
+        // Gives a compiler error! We can't divide by 0! Such power.
+        // assert_eq!(<(church!(*), church!()) as Div>::Quotient::VALUE, 0);
+        assert_eq!(<(church!(), church!(*)) as Div>::Quotient::VALUE, 0);
+        assert_eq!(<(church!(*), church!(*)) as Div>::Quotient::VALUE, 1);
+        assert_eq!(<(church!(**), church!(***)) as Div>::Quotient::VALUE, 0);
+        assert_eq!(<(church!(***), church!(**)) as Div>::Quotient::VALUE, 1);
+        assert_eq!(<(church!(******), church!(**)) as Div>::Quotient::VALUE, 3);
+    }
 }
