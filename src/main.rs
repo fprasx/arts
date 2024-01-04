@@ -130,18 +130,6 @@ where
     type Product = <(Succ<U>, <(T, Succ<U>) as Mul>::Product) as Add>::Sum;
 }
 
-trait NotZero {
-    type NotZero;
-}
-
-impl NotZero for Zero {
-    type NotZero = Zero;
-}
-
-impl<T> NotZero for Succ<T> {
-    type NotZero = Succ<Zero>;
-}
-
 // Division
 
 trait GreaterThanEq {
