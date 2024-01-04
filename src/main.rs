@@ -1,3 +1,4 @@
+#![recursion_limit = "12345678"]
 use std::marker::PhantomData;
 
 fn main() {
