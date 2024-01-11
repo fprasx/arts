@@ -32,7 +32,8 @@ the actual integer 12, even though everything in the previous expression is
 a type!
 
 
-Here's a blog post that explains it in much more detail **TODO**
+Here's a blog post that explains it in much more detail:
+[Doing First Grade Math in Rust's Type System](https://fprasx.github.io/articles/type-system-arithmetic/)
 
 ## License
 
