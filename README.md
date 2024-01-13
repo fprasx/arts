@@ -22,7 +22,7 @@ where
     (T, Succ<U>): Mul,
     (Succ<U>, <(T, Succ<U>) as Mul>::Product): Add,
 {
-    // x * y = x + (x - 1) * y
+    // x * y = y + (x - 1) * y
     type Product = <(Succ<U>, <(T, Succ<U>) as Mul>::Product) as Add>::Sum;
 }
 ```
