@@ -159,42 +159,40 @@ trait Div {
     type Quotient;
 }
 
-// Instead of implementing for (T, Succ<Zero>), implement for (Succ<T>, Succ<Zero>)
-// to avoid overlapping with the next impl on (Zero, Succ<Zero>)
-impl<T> Div for (Succ<T>, Succ<Zero>) {
-    type Quotient = Succ<T>;
+impl Div for (Zero, Zero) {
+    type Quotient = Zero;
 }
 
-impl<T> Div for (Zero, T) {
+impl<T> Div for (Zero, Succ<T>) {
     type Quotient = Zero;
 }
 
 type RawQuotient<T, U> = <(
     Succ<Zero>,
-    <(<(Succ<T>, Succ<Succ<U>>) as Sub>::Diff, Succ<Succ<U>>) as Div>::Quotient,
+    <(<(Succ<T>, Succ<U>) as Sub>::Diff, Succ<U>) as Div>::Quotient,
 ) as Add>::Sum;
 
-impl<T, U> Div for (Succ<T>, Succ<Succ<U>>)
+impl<T, U> Div for (Succ<T>, Succ<U>)
 where
-    (T, Succ<U>): Sub,
-    (<(T, Succ<U>) as Sub>::Diff, Succ<Succ<U>>): Div,
+    (Succ<T>, Succ<U>): Sub,
+    (<(Succ<T>, Succ<U>) as Sub>::Diff, Succ<U>): Div,
     (
         Succ<Zero>,
-        <(<(T, Succ<U>) as Sub>::Diff, Succ<Succ<U>>) as Div>::Quotient,
+        <(<(Succ<T>, Succ<U>) as Sub>::Diff, Succ<U>) as Div>::Quotient,
     ): Add,
     (
-        <(Succ<T>, Succ<Succ<U>>) as GreaterThanEq>::Greater,
+        <(Succ<T>, Succ<U>) as GreaterThanEq>::Greater,
         <(
             Succ<Zero>,
-            <(<(T, Succ<U>) as Sub>::Diff, Succ<Succ<U>>) as Div>::Quotient,
+            <(<(Succ<T>, Succ<U>) as Sub>::Diff, Succ<U>) as Div>::Quotient,
         ) as Add>::Sum,
     ): Mul,
-    (Succ<T>, Succ<Succ<U>>): GreaterThanEq,
+    (Succ<T>, Succ<U>): GreaterThanEq,
 {
     // If x < y, return 0. We can do this by multiplying the "RawQuotient" by
     // the bool->int value of this condition.
     type Quotient = <(
-        <(Succ<T>, Succ<Succ<U>>) as GreaterThanEq>::Greater,
+        <(Succ<T>, Succ<U>) as GreaterThanEq>::Greater,
         RawQuotient<T, U>,
     ) as Mul>::Product;
 }
