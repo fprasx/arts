@@ -1,5 +1,4 @@
 #![recursion_limit = "12345678"]
-use std::marker::PhantomData;
 
 fn main() {
     println!(
@@ -37,7 +36,7 @@ macro_rules! encode {
 struct Zero;
 
 #[derive(Debug)]
-struct Succ<T>(PhantomData<T>);
+struct Succ<T>(T);
 
 // Evaluation
 
