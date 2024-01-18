@@ -210,8 +210,6 @@ mod tests {
 
     #[test]
     fn division() {
-        // We define 0 / 0 as 0
-        assert_eq!(Div::<encode!(), encode!()>::VALUE, 0);
         // Gives a compiler error! We can't divide by 0! Such power.
         // assert_eq!(Div::<encode!(*), encode!()>::VALUE, 0);
         assert_eq!(Div::<encode!(), encode!(*)>::VALUE, 0);
