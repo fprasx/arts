@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 fn main() {
     println!(
         "{}",
-        <(
+        Sub::<
             encode!(
                 ***********************
                 ***********************
@@ -15,7 +15,7 @@ fn main() {
                 **************
                 **************
             )
-        ) as Sub>::Diff::VALUE
+        >::VALUE
     );
 }
 
@@ -57,146 +57,156 @@ where
 
 // Addition
 
-trait Add {
-    type Sum;
+trait AddImpl {
+    type Output;
 }
 
-impl Add for (Zero, Zero) {
-    type Sum = Zero;
+type Add<L, R> = <(L, R) as AddImpl>::Output;
+
+impl AddImpl for (Zero, Zero) {
+    type Output = Zero;
 }
 
-impl<T> Add for (Succ<T>, Zero) {
-    type Sum = Succ<T>;
+impl<T> AddImpl for (Succ<T>, Zero) {
+    type Output = Succ<T>;
 }
 
-impl<T> Add for (Zero, Succ<T>) {
-    type Sum = Succ<T>;
+impl<T> AddImpl for (Zero, Succ<T>) {
+    type Output = Succ<T>;
 }
 
-impl<T, U> Add for (Succ<T>, Succ<U>)
+impl<T, U> AddImpl for (Succ<T>, Succ<U>)
 where
-    (T, Succ<Succ<U>>): Add,
+    (T, Succ<Succ<U>>): AddImpl,
 {
-    type Sum = <(T, Succ<Succ<U>>) as Add>::Sum;
+    type Output = Add<T, Succ<Succ<U>>>;
 }
 
 // Subtraction
 
-trait Sub {
-    type Diff;
+trait SubImpl {
+    type Output;
 }
 
-impl Sub for (Zero, Zero) {
-    type Diff = Zero;
+type Sub<L, R> = <(L, R) as SubImpl>::Output;
+
+impl SubImpl for (Zero, Zero) {
+    type Output = Zero;
 }
 
-impl<T> Sub for (Succ<T>, Zero) {
-    type Diff = Succ<T>;
+impl<T> SubImpl for (Succ<T>, Zero) {
+    type Output = Succ<T>;
 }
 
-impl<T> Sub for (Zero, Succ<T>) {
-    type Diff = Zero;
+impl<T> SubImpl for (Zero, Succ<T>) {
+    type Output = Zero;
 }
 
-impl<T, U> Sub for (Succ<T>, Succ<U>)
+impl<T, U> SubImpl for (Succ<T>, Succ<U>)
 where
-    (T, U): Sub,
+    (T, U): SubImpl,
 {
-    type Diff = <(T, U) as Sub>::Diff;
+    type Output = Sub<T, U>;
 }
 
 // Multiplication
 
-trait Mul {
-    type Product;
+trait MulImpl {
+    type Output;
 }
 
-impl<T> Mul for (T, Zero) {
-    type Product = Zero;
+type Mul<L, R> = <(L, R) as MulImpl>::Output;
+
+impl<T> MulImpl for (T, Zero) {
+    type Output = Zero;
 }
 
 // Implementing for (Zero, T) would overlap with the previous impl, so we do
 // (Zero, Succ<T>) to avoid the (Zero, Zero) case that overlaps
-impl<T> Mul for (Zero, Succ<T>) {
-    type Product = Zero;
+impl<T> MulImpl for (Zero, Succ<T>) {
+    type Output = Zero;
 }
 
-impl<T, U> Mul for (Succ<T>, Succ<U>)
+impl<T, U> MulImpl for (Succ<T>, Succ<U>)
 where
-    (T, Succ<U>): Mul,
-    (Succ<U>, <(T, Succ<U>) as Mul>::Product): Add,
+    (T, Succ<U>): MulImpl,
+    (Succ<U>, Mul<T, Succ<U>>): AddImpl,
 {
     // x * y = y + (x - 1) * y
-    type Product = <(Succ<U>, <(T, Succ<U>) as Mul>::Product) as Add>::Sum;
+    type Output = Add<Succ<U>, Mul<T, Succ<U>>>;
 }
 
 // Division
 
-trait GreaterThanEq {
-    type Greater;
+trait GreaterThanEqImpl {
+    type Output;
 }
 
-impl GreaterThanEq for (Zero, Zero) {
-    type Greater = Succ<Zero>;
+type GreaterThanEq<L, R> = <(L, R) as GreaterThanEqImpl>::Output;
+
+impl GreaterThanEqImpl for (Zero, Zero) {
+    type Output = Succ<Zero>;
 }
 
-impl<T> GreaterThanEq for (Zero, Succ<T>) {
-    type Greater = Zero;
+impl<T> GreaterThanEqImpl for (Zero, Succ<T>) {
+    type Output = Zero;
 }
 
-impl<T> GreaterThanEq for (Succ<T>, Zero) {
-    type Greater = Succ<Zero>;
+impl<T> GreaterThanEqImpl for (Succ<T>, Zero) {
+    type Output = Succ<Zero>;
 }
 
-impl<T, U> GreaterThanEq for (Succ<T>, Succ<U>)
+impl<T, U> GreaterThanEqImpl for (Succ<T>, Succ<U>)
 where
-    (T, U): GreaterThanEq,
+    (T, U): GreaterThanEqImpl,
 {
-    type Greater = <(T, U) as GreaterThanEq>::Greater;
+    type Output = GreaterThanEq<T, U>;
 }
 
-trait Div {
-    type Quotient;
+trait DivImpl {
+    type Output;
 }
+
+type Div<L, R> = <(L, R) as DivImpl>::Output;
 
 // Instead of implementing for (T, Succ<Zero>), implement for (Succ<T>, Succ<Zero>)
 // to avoid overlapping with the next impl on (Zero, Succ<Zero>)
-impl<T> Div for (Succ<T>, Succ<Zero>) {
-    type Quotient = Succ<T>;
+impl<T> DivImpl for (Succ<T>, Succ<Zero>) {
+    type Output = Succ<T>;
 }
 
-impl<T> Div for (Zero, T) {
-    type Quotient = Zero;
+impl<T> DivImpl for (Zero, T) {
+    type Output = Zero;
 }
 
-type RawQuotient<T, U> = <(
+type RawQuotient<T, U> = Add<
     Succ<Zero>,
-    <(<(Succ<T>, Succ<Succ<U>>) as Sub>::Diff, Succ<Succ<U>>) as Div>::Quotient,
-) as Add>::Sum;
+    Div<Sub<Succ<T>, Succ<Succ<U>>>, Succ<Succ<U>>>,
+>;
 
-impl<T, U> Div for (Succ<T>, Succ<Succ<U>>)
+impl<T, U> DivImpl for (Succ<T>, Succ<Succ<U>>)
 where
-    (T, Succ<U>): Sub,
-    (<(T, Succ<U>) as Sub>::Diff, Succ<Succ<U>>): Div,
+    (T, Succ<U>): SubImpl,
+    (Sub<T, Succ<U>>, Succ<Succ<U>>): DivImpl,
     (
         Succ<Zero>,
-        <(<(T, Succ<U>) as Sub>::Diff, Succ<Succ<U>>) as Div>::Quotient,
-    ): Add,
+        Div<Sub<T, Succ<U>>, Succ<Succ<U>>>,
+    ): AddImpl,
     (
-        <(Succ<T>, Succ<Succ<U>>) as GreaterThanEq>::Greater,
-        <(
+        GreaterThanEq<Succ<T>, Succ<Succ<U>>>,
+        Add<
             Succ<Zero>,
-            <(<(T, Succ<U>) as Sub>::Diff, Succ<Succ<U>>) as Div>::Quotient,
-        ) as Add>::Sum,
-    ): Mul,
-    (Succ<T>, Succ<Succ<U>>): GreaterThanEq,
+            Div<Sub<T, Succ<U>>, Succ<Succ<U>>>,
+        >,
+    ): MulImpl,
+    (Succ<T>, Succ<Succ<U>>): GreaterThanEqImpl,
 {
     // If x < y, return 0. We can do this by multiplying the "RawQuotient" by
     // the bool->int value of this condition.
-    type Quotient = <(
-        <(Succ<T>, Succ<Succ<U>>) as GreaterThanEq>::Greater,
+    type Output = Mul<
+        GreaterThanEq<Succ<T>, Succ<Succ<U>>>,
         RawQuotient<T, U>,
-    ) as Mul>::Product;
+    >;
 }
 
 #[cfg(test)]
@@ -205,47 +215,47 @@ mod tests {
 
     #[test]
     fn addition() {
-        assert_eq!(<(encode!(), encode!()) as Add>::Sum::VALUE, 0);
-        assert_eq!(<(encode!(*), encode!()) as Add>::Sum::VALUE, 1);
-        assert_eq!(<(encode!(), encode!(*)) as Add>::Sum::VALUE, 1);
-        assert_eq!(<(encode!(**), encode!(***)) as Add>::Sum::VALUE, 5);
+        assert_eq!(Add::<encode!(), encode!()>::VALUE, 0);
+        assert_eq!(Add::<encode!(*), encode!()>::VALUE, 1);
+        assert_eq!(Add::<encode!(), encode!(*)>::VALUE, 1);
+        assert_eq!(Add::<encode!(**), encode!(***)>::VALUE, 5);
     }
 
     #[test]
     fn subtraction() {
-        assert_eq!(<(encode!(), encode!()) as Sub>::Diff::VALUE, 0);
-        assert_eq!(<(encode!(*), encode!()) as Sub>::Diff::VALUE, 1);
+        assert_eq!(Sub::<encode!(), encode!()>::VALUE, 0);
+        assert_eq!(Sub::<encode!(*), encode!()>::VALUE, 1);
         // Subtraction is saturating to make division easier
-        assert_eq!(<(encode!(), encode!(*)) as Sub>::Diff::VALUE, 0);
-        assert_eq!(<(encode!(***), encode!(**)) as Sub>::Diff::VALUE, 1);
+        assert_eq!(Sub::<encode!(), encode!(*)>::VALUE, 0);
+        assert_eq!(Sub::<encode!(***), encode!(**)>::VALUE, 1);
     }
 
     #[test]
     fn multiplication() {
-        assert_eq!(<(encode!(), encode!()) as Mul>::Product::VALUE, 0);
-        assert_eq!(<(encode!(*), encode!()) as Mul>::Product::VALUE, 0);
-        assert_eq!(<(encode!(), encode!(*)) as Mul>::Product::VALUE, 0);
-        assert_eq!(<(encode!(*), encode!(*)) as Mul>::Product::VALUE, 1);
-        assert_eq!(<(encode!(**), encode!(***)) as Mul>::Product::VALUE, 6);
+        assert_eq!(Mul::<encode!(), encode!()>::VALUE, 0);
+        assert_eq!(Mul::<encode!(*), encode!()>::VALUE, 0);
+        assert_eq!(Mul::<encode!(), encode!(*)>::VALUE, 0);
+        assert_eq!(Mul::<encode!(*), encode!(*)>::VALUE, 1);
+        assert_eq!(Mul::<encode!(**), encode!(***)>::VALUE, 6);
     }
 
     #[test]
     fn greater_than_eq() {
-        assert_eq!(<(encode!(), encode!()) as GreaterThanEq>::Greater::VALUE, 1);
+        assert_eq!(GreaterThanEq::<encode!(), encode!()>::VALUE, 1);
         assert_eq!(
-            <(encode!(*), encode!()) as GreaterThanEq>::Greater::VALUE,
+            GreaterThanEq::<encode!(*), encode!()>::VALUE,
             1
         );
         assert_eq!(
-            <(encode!(), encode!(*)) as GreaterThanEq>::Greater::VALUE,
+            GreaterThanEq::<encode!(), encode!(*)>::VALUE,
             0
         );
         assert_eq!(
-            <(encode!(**), encode!(**)) as GreaterThanEq>::Greater::VALUE,
+            GreaterThanEq::<encode!(**), encode!(**)>::VALUE,
             1
         );
         assert_eq!(
-            <(encode!(***), encode!(**)) as GreaterThanEq>::Greater::VALUE,
+            GreaterThanEq::<encode!(***), encode!(**)>::VALUE,
             1
         );
     }
@@ -253,14 +263,14 @@ mod tests {
     #[test]
     fn division() {
         // We define 0 / 0 as 0
-        assert_eq!(<(encode!(), encode!()) as Div>::Quotient::VALUE, 0);
+        assert_eq!(Div::<encode!(), encode!()>::VALUE, 0);
         // Gives a compiler error! We can't divide by 0! Such power.
-        // assert_eq!(<(church!(*), church!()) as Div>::Quotient::VALUE, 0);
-        assert_eq!(<(encode!(), encode!(*)) as Div>::Quotient::VALUE, 0);
-        assert_eq!(<(encode!(*), encode!(*)) as Div>::Quotient::VALUE, 1);
-        assert_eq!(<(encode!(**), encode!(***)) as Div>::Quotient::VALUE, 0);
-        assert_eq!(<(encode!(***), encode!(**)) as Div>::Quotient::VALUE, 1);
-        assert_eq!(<(encode!(******), encode!(**)) as Div>::Quotient::VALUE, 3);
-        assert_eq!(<(encode!(*******), encode!(**)) as Div>::Quotient::VALUE, 3);
+        // assert_eq!(Div::<encode!(*), encode!()>::VALUE, 0);
+        assert_eq!(Div::<encode!(), encode!(*)>::VALUE, 0);
+        assert_eq!(Div::<encode!(*), encode!(*)>::VALUE, 1);
+        assert_eq!(Div::<encode!(**), encode!(***)>::VALUE, 0);
+        assert_eq!(Div::<encode!(***), encode!(**)>::VALUE, 1);
+        assert_eq!(Div::<encode!(******), encode!(**)>::VALUE, 3);
+        assert_eq!(Div::<encode!(*******), encode!(**)>::VALUE, 3);
     }
 }
