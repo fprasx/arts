@@ -14,7 +14,7 @@ fn main() {
                 **************
                 **************
                 **************
-            )
+            ),
         >::VALUE
     );
 }
@@ -179,34 +179,22 @@ impl<T> DivImpl for (Zero, T) {
     type Output = Zero;
 }
 
-type RawQuotient<T, U> = Add<
-    Succ<Zero>,
-    Div<Sub<Succ<T>, Succ<Succ<U>>>, Succ<Succ<U>>>,
->;
+type RawQuotient<T, U> = Add<Succ<Zero>, Div<Sub<Succ<T>, Succ<Succ<U>>>, Succ<Succ<U>>>>;
 
 impl<T, U> DivImpl for (Succ<T>, Succ<Succ<U>>)
 where
     (T, Succ<U>): SubImpl,
     (Sub<T, Succ<U>>, Succ<Succ<U>>): DivImpl,
-    (
-        Succ<Zero>,
-        Div<Sub<T, Succ<U>>, Succ<Succ<U>>>,
-    ): AddImpl,
+    (Succ<Zero>, Div<Sub<T, Succ<U>>, Succ<Succ<U>>>): AddImpl,
     (
         GreaterThanEq<Succ<T>, Succ<Succ<U>>>,
-        Add<
-            Succ<Zero>,
-            Div<Sub<T, Succ<U>>, Succ<Succ<U>>>,
-        >,
+        Add<Succ<Zero>, Div<Sub<T, Succ<U>>, Succ<Succ<U>>>>,
     ): MulImpl,
     (Succ<T>, Succ<Succ<U>>): GreaterThanEqImpl,
 {
     // If x < y, return 0. We can do this by multiplying the "RawQuotient" by
     // the bool->int value of this condition.
-    type Output = Mul<
-        GreaterThanEq<Succ<T>, Succ<Succ<U>>>,
-        RawQuotient<T, U>,
-    >;
+    type Output = Mul<GreaterThanEq<Succ<T>, Succ<Succ<U>>>, RawQuotient<T, U>>;
 }
 
 #[cfg(test)]
@@ -242,22 +230,10 @@ mod tests {
     #[test]
     fn greater_than_eq() {
         assert_eq!(GreaterThanEq::<encode!(), encode!()>::VALUE, 1);
-        assert_eq!(
-            GreaterThanEq::<encode!(*), encode!()>::VALUE,
-            1
-        );
-        assert_eq!(
-            GreaterThanEq::<encode!(), encode!(*)>::VALUE,
-            0
-        );
-        assert_eq!(
-            GreaterThanEq::<encode!(**), encode!(**)>::VALUE,
-            1
-        );
-        assert_eq!(
-            GreaterThanEq::<encode!(***), encode!(**)>::VALUE,
-            1
-        );
+        assert_eq!(GreaterThanEq::<encode!(*), encode!()>::VALUE, 1);
+        assert_eq!(GreaterThanEq::<encode!(), encode!(*)>::VALUE, 0);
+        assert_eq!(GreaterThanEq::<encode!(**), encode!(**)>::VALUE, 1);
+        assert_eq!(GreaterThanEq::<encode!(***), encode!(**)>::VALUE, 1);
     }
 
     #[test]
