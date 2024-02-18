@@ -130,6 +130,26 @@ where
     type Product = <(Succ<U>, <(T, Succ<U>) as Mul>::Product) as Add>::Sum;
 }
 
+// Factorial
+
+trait Factorial {
+    type Result;
+}
+
+// Base case: 0! = 1
+impl Factorial for Zero {
+    type Result = Succ<Zero>;
+}
+
+impl<T> Factorial for Succ<T>
+where
+    T: Factorial,
+    (Succ<T>, T::Result): Mul,
+{
+    // n! = n * (n-1)!
+    type Result = <(Succ<T>, T::Result) as Mul>::Product;
+}
+
 // Division
 
 trait GreaterThanEq {
@@ -227,6 +247,15 @@ mod tests {
         assert_eq!(<(encode!(), encode!(*)) as Mul>::Product::VALUE, 0);
         assert_eq!(<(encode!(*), encode!(*)) as Mul>::Product::VALUE, 1);
         assert_eq!(<(encode!(**), encode!(***)) as Mul>::Product::VALUE, 6);
+    }
+
+    #[test]
+    fn factorial() {
+        assert_eq!(<encode!() as Factorial>::Result::VALUE, 1);
+        assert_eq!(<encode!(*) as Factorial>::Result::VALUE, 1);
+        assert_eq!(<encode!(**) as Factorial>::Result::VALUE, 2);
+        assert_eq!(<encode!(***) as Factorial>::Result::VALUE, 6);
+        assert_eq!(<encode!(****) as Factorial>::Result::VALUE, 24);
     }
 
     #[test]
